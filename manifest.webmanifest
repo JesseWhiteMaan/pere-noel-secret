@@ -1,7 +1,7 @@
 {
   "name": "Père Noël secret",
   "short_name": "Père Noël",
-  "description": "Le tirage au sort du Père Noël secret de la famille.",
+  "description": "Le tirage au sort du Père Noël secret.",
   "lang": "fr",
   "start_url": "./",
   "scope": "./",

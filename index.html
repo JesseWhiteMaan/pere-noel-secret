@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Père Noël secret</title>
-<meta name="description" content="Le tirage au sort du Père Noël secret de la famille.">
+<meta name="description" content="Le tirage au sort du Père Noël secret.">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#b3261e">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -597,7 +597,7 @@ function carteMission(p, revele, boutons) {
       ${flocons()}
       <p class="sur-titre">${esc(p.ti || 'Père Noël secret')}</p>
       <h1>Coucou ${esc(p.d)} ! 🎅</h1>
-      <p>Le Père Noël est débordé cette année, alors il a demandé un coup de main à toute la famille… et il compte sur toi ! 🎄</p>
+      <p>Le Père Noël est débordé cette année, alors il a demandé un coup de main à tout le monde… et il compte sur toi ! 🎄</p>
       ${revele ? `
         <div class="mission">
           <p>Ta mission : préparer un joli cadeau pour</p>
@@ -685,7 +685,7 @@ function vueInvitation(p) {
   } else {
     corps = `
       <form data-form="inscription">
-        <label>Ton prénom<input id="prenom-inscription" placeholder="Comme la famille t'appelle" maxlength="40" autocomplete="given-name"></label>
+        <label>Ton prénom<input id="prenom-inscription" placeholder="Comme les autres t'appellent" maxlength="40" autocomplete="given-name"></label>
         <button class="principal">Je m'inscris</button>
       </form>
       <p class="discret" style="margin-top:12px">Ton téléphone crée une clé secrète qui ne le quitte jamais : ta mission ne pourra s'ouvrir qu'ici, dans ce navigateur. Même l'organisateur ne pourra pas la lire.</p>`;
@@ -755,7 +755,7 @@ function carteInscriptions() {
   return `
     <section class="carte">
       <h2>1. Les inscriptions <span class="compte">${n}</span></h2>
-      <p class="discret">Envoie l'invitation à tout le monde, même dans le groupe de la famille : elle ne contient rien de secret. Chacun s'inscrit sur son téléphone et te renvoie son lien d'inscription. Ouvre ces liens ici pour les ajouter.</p>
+      <p class="discret">Envoie l'invitation à tout le monde, même dans un groupe : elle ne contient rien de secret. Chacun s'inscrit sur son téléphone et te renvoie son lien d'inscription. Ouvre ces liens ici pour les ajouter.</p>
       <button class="large" data-action="partager-invitation">✉️ Envoyer l'invitation</button>
       ${etat.inscrits.some(i => i.local) ? '' : `<button class="secondaire large" data-action="m-inscrire">Je participe aussi</button>`}
       ${n ? `<ul class="puces" style="margin-top:14px">${puces}</ul>` : ''}
@@ -771,7 +771,7 @@ function vueOrganiser() {
     <header class="entete">
       <div class="logo">🎅</div>
       <h1>Père Noël secret</h1>
-      <p>Le tirage au sort de la famille, sans que personne ne triche.</p>
+      <p>Le tirage au sort, sans que personne ne triche.</p>
     </header>
 
     <div class="modes" role="group" aria-label="Mode du tirage">
@@ -802,7 +802,7 @@ function vueOrganiser() {
 
     <section class="carte">
       <h2>3. Les détails <small>facultatif</small></h2>
-      <label>Nom du tirage<input data-champ="titre" value="${esc(etat.titre)}" placeholder="Noël 2026 en famille"></label>
+      <label>Nom du tirage<input data-champ="titre" value="${esc(etat.titre)}" placeholder="Noël 2026"></label>
       <div class="deux">
         <label>Budget<input data-champ="budget" value="${esc(etat.budget)}" placeholder="20 €"></label>
         <label>Échange des cadeaux<input data-champ="date" value="${esc(etat.date)}" placeholder="le 24 décembre"></label>
@@ -1029,7 +1029,7 @@ async function ajouterInscrit() {
 }
 
 async function inscrireOrganisateur() {
-  const nom = propre(prompt("Ton prénom, comme la famille t'appelle :"));
+  const nom = propre(prompt("Ton prénom, comme les autres t'appellent :"));
   if (!nom) return;
   if (etat.inscrits.some(i => meme(i.nom, nom))) return toast(`${nom} est déjà inscrit.`);
   try {
