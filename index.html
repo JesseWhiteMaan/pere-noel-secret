@@ -116,6 +116,7 @@ button.danger { background: transparent; color: var(--doux); border-color: var(-
 button.principal { width: 100%; font-size: 1.1rem; min-height: 54px; border-radius: 14px; }
 button.large { width: 100%; }
 button:focus-visible { outline: 3px solid var(--vert); outline-offset: 2px; }
+button + button.large, button.large + button { margin-top: 10px; }
 .ligne { display: flex; gap: 8px; margin-bottom: 12px; }
 .ligne input { flex: 1; min-width: 0; }
 .ligne.couple { flex-wrap: wrap; align-items: center; }
@@ -133,6 +134,7 @@ button:focus-visible { outline: 3px solid var(--vert); outline-offset: 2px; }
   border-radius: 999px;
   padding: 2px 4px 2px 12px;
 }
+.puces li small { font-weight: 500; margin-left: 4px; }
 .puces button, .couples button {
   min-height: 32px;
   width: 32px;
@@ -156,6 +158,19 @@ button:focus-visible { outline: 3px solid var(--vert); outline-offset: 2px; }
 .case input { width: 22px; height: 22px; min-height: 0; margin: 2px 0 0; accent-color: var(--rouge); flex: none; }
 .case small { display: block; color: var(--doux); }
 .deux { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 10px;
+  background: var(--carte);
+  border: 1px solid var(--bord);
+  border-radius: 14px;
+}
+.modes button { background: transparent; border: 0; color: var(--texte); min-height: 42px; }
+.modes button[aria-pressed="true"] { background: var(--rouge); color: #fff; }
+.explication { color: var(--doux); font-size: .92rem; text-align: center; margin-bottom: 16px; }
 .barre-action {
   position: sticky;
   bottom: 0;
@@ -164,6 +179,10 @@ button:focus-visible { outline: 3px solid var(--vert); outline-offset: 2px; }
 }
 .pied { text-align: center; color: var(--doux); font-size: .85rem; margin-top: 8px; }
 .pied a { color: var(--rouge); }
+details.coller { margin-top: 16px; }
+details.coller summary { cursor: pointer; color: var(--doux); font-size: .9rem; text-align: center; padding: 8px 0; }
+details.coller form { margin-top: 8px; }
+.chargement { text-align: center; color: var(--doux); padding: 48px 0; }
 .envois li {
   display: flex;
   align-items: center;
@@ -185,6 +204,7 @@ h3 { font-size: 1rem; margin-top: 16px; color: var(--doux); font-weight: 600; }
 .centre button + button { margin-top: 10px; }
 .fete { position: relative; overflow: hidden; text-align: center; padding: 28px 20px; }
 .fete > * { position: relative; }
+.fete form { text-align: left; }
 .sur-titre { text-transform: uppercase; letter-spacing: .08em; font-size: .78rem; color: var(--rouge); font-weight: 700; }
 .mission {
   margin: 18px 0;
@@ -256,8 +276,8 @@ const CLE = 'pere-noel-secret-v1';
 const $app = document.getElementById('app');
 
 const etatVide = () => ({
-  titre: '', participants: [], couples: [], sansReciproque: true,
-  budget: '', date: '', mot: '', gardien: '', tirage: null
+  mode: 'simple', titre: '', participants: [], couples: [], sansReciproque: true,
+  budget: '', date: '', mot: '', gardien: '', session: '', inscrits: [], tirage: null
 });
 
 let etat = charger();
@@ -277,6 +297,10 @@ function sauver() {
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const meme = (a, b) => a.toLocaleLowerCase('fr') === b.toLocaleLowerCase('fr');
+const propre = s => String(s || '').trim().replace(/\s+/g, ' ').slice(0, 40);
+const secret = () => etat.mode === 'secret';
+const nomsActifs = () => secret() ? etat.inscrits.map(i => i.nom) : etat.participants;
+const couplesActifs = () => etat.couples.filter(([a, b]) => nomsActifs().includes(a) && nomsActifs().includes(b));
 
 // --- Tirage -----------------------------------------------------------------
 
@@ -337,9 +361,9 @@ function tirer(noms, couples, sansReciproque) {
   throw new Error("Tirage impossible avec ces couples. Retire un couple ou autorise les échanges réciproques.");
 }
 
-// --- Liens secrets ------------------------------------------------------------
-// Le nom tiré est brouillé dans le lien (pas chiffré) : illisible d'un coup d'œil,
-// et placé après le # pour ne jamais être envoyé au serveur.
+// --- Liens ----------------------------------------------------------------------
+// Tout est placé après le # du lien, que le navigateur n'envoie jamais au serveur.
+// Mode simple : le contenu est seulement brouillé, illisible d'un coup d'œil.
 
 function coder(obj) {
   const octets = new TextEncoder().encode(JSON.stringify(obj));
@@ -347,55 +371,147 @@ function coder(obj) {
   const sortie = new Uint8Array(4 + octets.length);
   sortie.set(sel);
   for (let i = 0; i < octets.length; i++) sortie[4 + i] = octets[i] ^ sel[i % 4] ^ ((i * 37 + 11) & 255);
-  let s = '';
-  sortie.forEach(x => { s += String.fromCharCode(x); });
-  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return b64.enc(sortie);
 }
 
 function decoder(texte) {
   try {
-    const s = atob(texte.replace(/-/g, '+').replace(/_/g, '/'));
+    const s = b64.dec(texte);
     const octets = new Uint8Array(s.length - 4);
-    for (let i = 0; i < octets.length; i++) octets[i] = s.charCodeAt(4 + i) ^ s.charCodeAt(i % 4) ^ ((i * 37 + 11) & 255);
+    for (let i = 0; i < octets.length; i++) octets[i] = s[4 + i] ^ s[i % 4] ^ ((i * 37 + 11) & 255);
     return JSON.parse(new TextDecoder().decode(octets));
   } catch (e) {
     return null;
   }
 }
 
+const b64 = {
+  enc: octets => {
+    let s = '';
+    new Uint8Array(octets).forEach(x => { s += String.fromCharCode(x); });
+    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  },
+  dec: texte => Uint8Array.from(atob(texte.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0))
+};
+
+const idAleatoire = () => b64.enc(crypto.getRandomValues(new Uint8Array(9)));
+
 function lirePayload() {
-  const m = location.hash.match(/^#p=([A-Za-z0-9_-]+)$/);
   if (!location.hash || location.hash === '#') return null;
+  const m = location.hash.match(/^#p=([A-Za-z0-9_-]+)$/);
   if (!m) return false;
   const p = decoder(m[1]);
-  if (!p || (p.t !== 'c' && p.t !== 'l')) return false;
+  if (!p || !['c', 'l', 'v', 'r', 's'].includes(p.t)) return false;
   return p;
 }
 
 const base = () => location.href.split('#')[0];
+const lien = obj => base() + '#p=' + coder(obj);
+
+// --- Mode anti-triche : chiffrement -------------------------------------------
+// Chaque participant crée sur son téléphone une paire de clés ECDH. La clé privée,
+// non exportable, reste dans le navigateur (IndexedDB). L'organisateur ne reçoit que
+// la clé publique et chiffre chaque mission pour son destinataire : il ne peut pas la lire.
+
+const ECDH = { name: 'ECDH', namedCurve: 'P-256' };
+
+async function cleAes(privee, publiqueBrute, usage) {
+  const publique = await crypto.subtle.importKey('raw', publiqueBrute, ECDH, false, []);
+  const commun = await crypto.subtle.deriveBits({ name: 'ECDH', public: publique }, privee, 256);
+  const hkdf = await crypto.subtle.importKey('raw', commun, 'HKDF', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0), info: new TextEncoder().encode('pere-noel-secret') },
+    hkdf, { name: 'AES-GCM', length: 256 }, false, [usage]);
+}
+
+async function creerCle() {
+  const paire = await crypto.subtle.generateKey(ECDH, false, ['deriveBits']);
+  return { privee: paire.privateKey, publique: b64.enc(await crypto.subtle.exportKey('raw', paire.publicKey)) };
+}
+
+async function cleValide(publique) {
+  try {
+    await crypto.subtle.importKey('raw', b64.dec(publique), ECDH, false, []);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function chiffrerPour(publique, obj) {
+  const ephemere = await crypto.subtle.generateKey(ECDH, true, ['deriveBits']);
+  const cle = await cleAes(ephemere.privateKey, b64.dec(publique), 'encrypt');
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const chiffre = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, cle, new TextEncoder().encode(JSON.stringify(obj)));
+  return { e: b64.enc(await crypto.subtle.exportKey('raw', ephemere.publicKey)), iv: b64.enc(iv), c: b64.enc(chiffre) };
+}
+
+async function dechiffrer(privee, p) {
+  const cle = await cleAes(privee, b64.dec(p.e), 'decrypt');
+  const clair = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64.dec(p.iv) }, cle, b64.dec(p.c));
+  return JSON.parse(new TextDecoder().decode(clair));
+}
+
+function ouvrirBase() {
+  return new Promise((ok, ko) => {
+    const r = indexedDB.open('pere-noel-secret', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('cles', { keyPath: 'id' });
+    r.onsuccess = () => ok(r.result);
+    r.onerror = () => ko(r.error);
+  });
+}
+
+async function magasin(mode, action) {
+  const db = await ouvrirBase();
+  return new Promise((ok, ko) => {
+    const tx = db.transaction('cles', mode);
+    const req = action(tx.objectStore('cles'));
+    tx.oncomplete = () => { db.close(); ok(req.result); };
+    tx.onerror = () => { db.close(); ko(tx.error); };
+  });
+}
+
+const garderCle = fiche => magasin('readwrite', s => s.put(fiche));
+const lireCle = id => magasin('readonly', s => s.get(id));
+const lireCles = () => magasin('readonly', s => s.getAll());
+
+async function inscrire(session, titre, nom) {
+  const cle = await creerCle();
+  const id = idAleatoire();
+  const adresse = lien({ t: 'r', s: session, id, n: nom, k: cle.publique });
+  await garderCle({ id, session, titre, nom, privee: cle.privee, lien: adresse, cree: Date.now() });
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { }
+  return { id, nom, cle: cle.publique, lien: adresse };
+}
+
+// --- Messages --------------------------------------------------------------------
+
+const titreCite = () => etat.titre ? ` « ${etat.titre} »` : '';
 
 function lienPersonne(nom) {
-  return base() + '#p=' + coder({
-    t: 'c', d: nom, r: etat.tirage.attributions[nom],
-    ti: etat.titre, b: etat.budget, dt: etat.date, m: etat.mot
-  });
+  return lien({ t: 'c', d: nom, r: etat.tirage.attributions[nom], ti: etat.titre, b: etat.budget, dt: etat.date, m: etat.mot });
 }
 
 function lienListe() {
-  return base() + '#p=' + coder({
-    t: 'l', ti: etat.titre, dt0: dateTirage(),
-    l: etat.tirage.noms.map(n => [n, etat.tirage.attributions[n]])
-  });
+  return lien({ t: 'l', ti: etat.titre, dt0: dateTirage(), l: etat.tirage.noms.map(n => [n, etat.tirage.attributions[n]]) });
 }
 
 function messagePersonne(nom) {
-  const titre = etat.titre ? ` « ${etat.titre} »` : '';
-  return `🎅 Coucou ${nom} ! Le tirage du Père Noël secret${titre} a eu lieu. Ouvre ce lien quand personne ne regarde pour découvrir ta mission :\n${lienPersonne(nom)}`;
+  if (etat.tirage.mode === 'secret') {
+    return `🎅 Coucou ${nom} ! Le tirage du Père Noël secret${titreCite()} a eu lieu. Ouvre ce lien sur le téléphone avec lequel tu t'es inscrit, quand personne ne regarde :\n${etat.tirage.liens[nom]}`;
+  }
+  return `🎅 Coucou ${nom} ! Le tirage du Père Noël secret${titreCite()} a eu lieu. Ouvre ce lien quand personne ne regarde pour découvrir ta mission :\n${lienPersonne(nom)}`;
 }
 
 function messageListe() {
   return `🎅 Coucou ${etat.gardien} ! Voici la liste complète du Père Noël secret, à garder pour toi au cas où quelqu'un perdrait son lien. Ne l'ouvre pas devant les autres :\n${lienListe()}`;
 }
+
+function messageInvitation() {
+  return `🎅 Le Père Noël secret${titreCite()} se prépare ! Ouvre ce lien sur ton téléphone pour t'inscrire, puis renvoie-moi le lien qu'il te donnera :\n${lien({ t: 'v', s: etat.session, ti: etat.titre })}`;
+}
+
+const messageInscription = fiche => `🎅 Voici mon inscription au Père Noël secret (${fiche.nom}). Ouvre ce lien sur ton téléphone d'organisateur :\n${fiche.lien}`;
 
 const dateTirage = () => new Date(etat.tirage.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -443,7 +559,7 @@ function toast(texte) {
   t.textContent = texte;
   t.classList.add('visible');
   clearTimeout(minuteurToast);
-  minuteurToast = setTimeout(() => t.classList.remove('visible'), 2800);
+  minuteurToast = setTimeout(() => t.classList.remove('visible'), 3200);
 }
 
 // --- Vues --------------------------------------------------------------------------
@@ -455,6 +571,19 @@ function flocons() {
     h += `<span style="left:${Math.random() * 100}%;font-size:${taille}px;animation-duration:${7 + Math.random() * 8}s;animation-delay:-${Math.random() * 12}s">❄</span>`;
   }
   return `<div class="neige" aria-hidden="true">${h}</div>`;
+}
+
+const chargement = texte => `<p class="chargement">${texte}</p>`;
+
+function formCollerLien() {
+  return `
+    <details class="coller">
+      <summary>J'ai reçu un lien</summary>
+      <form class="ligne" data-form="coller-lien">
+        <input id="lien-colle" placeholder="Colle le lien ici" autocomplete="off" aria-label="Lien reçu">
+        <button>Ouvrir</button>
+      </form>
+    </details>`;
 }
 
 function carteMission(p, revele, boutons) {
@@ -490,6 +619,36 @@ function vueRevelation(p) {
     `<p class="pied"><a href="./">Organiser mon propre tirage</a></p>`;
 }
 
+function vueMissionSecrete(p) {
+  if (vue.mission === undefined) {
+    if (!vue.enCours) {
+      vue.enCours = true;
+      const v = vue;
+      lireCle(p.id)
+        .then(fiche => fiche ? dechiffrer(fiche.privee, p).then(m => { v.mission = m; }, () => { v.mission = null; v.erreur = 'illisible'; })
+                             : (v.mission = null, v.erreur = 'absente'))
+        .catch(() => { v.mission = null; v.erreur = 'stockage'; })
+        .then(() => { if (vue === v) render(); });
+    }
+    return chargement('Ouverture de ta mission… 🔒');
+  }
+  if (vue.mission) return vueRevelation(vue.mission);
+  const textes = {
+    absente: `<p>Cette mission ne s'ouvre que sur le téléphone, et dans le navigateur, avec lequel tu t'es inscrit. Ouvre ce lien depuis ce téléphone-là.</p>
+      <p class="discret">Tu t'es inscrit dans l'appli installée sur l'écran d'accueil ? Ouvre-la et colle ce lien dans « J'ai reçu un lien ».</p>
+      <p class="discret">Tu as changé de téléphone ou effacé les données du site ? Ta mission est perdue : demande à l'organisateur de refaire un tirage, et réinscris-toi.</p>`,
+    illisible: `<p>Ce lien ne correspond pas à ton inscription sur ce téléphone. Demande à l'organisateur de te le renvoyer.</p>`,
+    stockage: `<p>Ce navigateur ne donne pas accès à ta clé secrète (navigation privée ?). Ouvre le lien dans un onglet normal.</p>`
+  };
+  return `
+    <section class="carte centre">
+      <div class="entete petit"><div class="logo">🔒</div></div>
+      <h1>Mission verrouillée</h1>
+      ${textes[vue.erreur]}
+      <button class="secondaire large" data-action="copier-adresse">Copier ce lien</button>
+    </section>`;
+}
+
 function vueListe(p) {
   const lignes = (p.l || []).map(([d, r]) => `<li><span>${esc(d)}</span><span class="fleche">offre à</span><span>${esc(r)}</span></li>`).join('');
   return `
@@ -503,6 +662,66 @@ function vueListe(p) {
     </section>`;
 }
 
+function vueInvitation(p) {
+  if (!vue.fiches) {
+    if (!vue.enCours) {
+      vue.enCours = true;
+      const v = vue;
+      lireCles()
+        .then(f => { v.fiches = f.filter(x => x.session === p.s); }, () => { v.fiches = []; v.stockageKo = true; })
+        .then(() => { if (vue === v) render(); });
+    }
+    return chargement('Chargement…');
+  }
+  let corps;
+  if (vue.stockageKo) {
+    corps = `<p>Ce navigateur ne peut pas garder ta clé secrète (navigation privée ?). Ouvre le lien dans un onglet normal.</p>`;
+  } else if (vue.fiches.length && !vue.autre) {
+    corps = `
+      <p>Inscrit sur ce téléphone : <strong>${vue.fiches.map(f => esc(f.nom)).join(', ')}</strong> ✓</p>
+      <p class="discret">Dernière étape, si ce n'est pas déjà fait : envoie ton inscription à l'organisateur.</p>
+      ${vue.fiches.map(f => `<button class="large" data-action="envoyer-inscription" data-id="${esc(f.id)}">Envoyer l'inscription${vue.fiches.length > 1 ? ' de ' + esc(f.nom) : ''}</button>`).join('')}
+      <button class="secondaire large" data-action="inscrire-autre">Inscrire une autre personne sur ce téléphone</button>`;
+  } else {
+    corps = `
+      <form data-form="inscription">
+        <label>Ton prénom<input id="prenom-inscription" placeholder="Comme la famille t'appelle" maxlength="40" autocomplete="given-name"></label>
+        <button class="principal">Je m'inscris</button>
+      </form>
+      <p class="discret" style="margin-top:12px">Ton téléphone crée une clé secrète qui ne le quitte jamais : ta mission ne pourra s'ouvrir qu'ici, dans ce navigateur. Même l'organisateur ne pourra pas la lire.</p>`;
+  }
+  return `
+    <section class="carte fete">
+      <p class="sur-titre">${esc(p.ti || 'Père Noël secret')}</p>
+      <h1>Inscription au Père Noël secret 🎅</h1>
+      ${corps}
+    </section>
+    <p class="pied">Garde ce téléphone et n'efface pas les données du site avant d'avoir vu ta mission. Ouvre-la dès que tu la reçois.</p>`;
+}
+
+function vueInscriptionRecue(p) {
+  const n = esc(p.n);
+  let corps;
+  if (!secret() || etat.session !== p.s) {
+    corps = `<p>Ce lien d'inscription doit être ouvert sur le téléphone de l'organisateur.</p>
+      <p class="discret">Tu es l'organisateur et tu utilises l'appli installée sur l'écran d'accueil ? Copie ce lien, ouvre l'appli et colle-le dans « J'ai reçu un lien ».</p>
+      <button class="large" data-action="copier-adresse">Copier ce lien</button>`;
+  } else if (etat.tirage) {
+    corps = `<p>Le tirage est déjà fait. Pour ajouter ${n}, touche « Modifier la liste et refaire un tirage », puis rouvre ce lien.</p>`;
+  } else if (etat.inscrits.some(i => i.id === p.id)) {
+    corps = `<p>${n} est déjà inscrit. ✓</p>`;
+  } else {
+    corps = `<p>${n} veut participer au tirage.</p><button class="principal" data-action="ajouter-inscrit">Ajouter ${n}</button>`;
+  }
+  return `
+    <section class="carte centre">
+      <div class="entete petit"><div class="logo">✉️</div></div>
+      <h1>Inscription de ${n}</h1>
+      ${corps}
+    </section>
+    <p class="pied"><a href="./">Retour au tirage</a></p>`;
+}
+
 function vueLienInvalide() {
   return `
     <section class="carte centre">
@@ -512,21 +731,14 @@ function vueLienInvalide() {
     </section>`;
 }
 
-function options(choix) {
-  return `<option value="">Choisir…</option>` + etat.participants.map(n => `<option${n === choix ? ' selected' : ''}>${esc(n)}</option>`).join('');
+function options() {
+  return `<option value="">Choisir…</option>` + nomsActifs().map(n => `<option>${esc(n)}</option>`).join('');
 }
 
-function vueOrganiser() {
+function carteParticipants() {
   const n = etat.participants.length;
   const puces = etat.participants.map(p => `<li>${esc(p)}<button type="button" data-action="suppr-participant" data-nom="${esc(p)}" aria-label="Retirer ${esc(p)}">×</button></li>`).join('');
-  const couples = etat.couples.map((c, i) => `<li>${esc(c[0])} <span>❤</span> ${esc(c[1])}<button type="button" data-action="suppr-couple" data-i="${i}" aria-label="Retirer ce couple">×</button></li>`).join('');
   return `
-    <header class="entete">
-      <div class="logo">🎅</div>
-      <h1>Père Noël secret</h1>
-      <p>Le tirage au sort de la famille, sans que personne ne triche.</p>
-    </header>
-
     <section class="carte">
       <h2>1. Les participants <span class="compte">${n}</span></h2>
       <form class="ligne" data-form="participant">
@@ -534,7 +746,43 @@ function vueOrganiser() {
         <button>Ajouter</button>
       </form>
       ${n ? `<ul class="puces">${puces}</ul>` : `<p class="discret">Ajoute toutes les personnes qui offrent un cadeau. Tu peux en mettre plusieurs d'un coup, séparées par des virgules.</p>`}
-    </section>
+    </section>`;
+}
+
+function carteInscriptions() {
+  const n = etat.inscrits.length;
+  const puces = etat.inscrits.map(i => `<li>${esc(i.nom)}${i.local ? '<small>(toi)</small>' : ''}<button type="button" data-action="suppr-inscrit" data-id="${esc(i.id)}" aria-label="Retirer ${esc(i.nom)}">×</button></li>`).join('');
+  return `
+    <section class="carte">
+      <h2>1. Les inscriptions <span class="compte">${n}</span></h2>
+      <p class="discret">Envoie l'invitation à tout le monde, même dans le groupe de la famille : elle ne contient rien de secret. Chacun s'inscrit sur son téléphone et te renvoie son lien d'inscription. Ouvre ces liens ici pour les ajouter.</p>
+      <button class="large" data-action="partager-invitation">✉️ Envoyer l'invitation</button>
+      ${etat.inscrits.some(i => i.local) ? '' : `<button class="secondaire large" data-action="m-inscrire">Je participe aussi</button>`}
+      ${n ? `<ul class="puces" style="margin-top:14px">${puces}</ul>` : ''}
+    </section>`;
+}
+
+function vueOrganiser() {
+  const couples = etat.couples
+    .map((c, i) => [c, i])
+    .filter(([c]) => nomsActifs().includes(c[0]) && nomsActifs().includes(c[1]))
+    .map(([c, i]) => `<li>${esc(c[0])} <span>❤</span> ${esc(c[1])}<button type="button" data-action="suppr-couple" data-i="${i}" aria-label="Retirer ce couple">×</button></li>`).join('');
+  return `
+    <header class="entete">
+      <div class="logo">🎅</div>
+      <h1>Père Noël secret</h1>
+      <p>Le tirage au sort de la famille, sans que personne ne triche.</p>
+    </header>
+
+    <div class="modes" role="group" aria-label="Mode du tirage">
+      <button data-action="mode" data-mode="simple" aria-pressed="${!secret()}">Simple</button>
+      <button data-action="mode" data-mode="secret" aria-pressed="${secret()}">🔒 Anti-triche</button>
+    </div>
+    <p class="explication">${secret()
+      ? "Chacun s'inscrit depuis son téléphone. Les missions sont chiffrées pour ce téléphone : personne, pas même toi, ne peut lire celle d'un autre."
+      : "Tu ajoutes les prénoms toi-même. Le plus rapide, mais l'organisateur pourrait tricher."}</p>
+
+    ${secret() ? carteInscriptions() : carteParticipants()}
 
     <section class="carte">
       <h2>2. Les couples à séparer</h2>
@@ -562,28 +810,33 @@ function vueOrganiser() {
       <label>Petit mot pour tout le monde<textarea data-champ="mot" rows="2" placeholder="On se retrouve chez Mamie !">${esc(etat.mot)}</textarea></label>
     </section>
 
+    ${secret() ? '' : `
     <section class="carte">
       <h2>4. Gardien de la liste <small>facultatif</small></h2>
       <p class="discret">Une personne qui ne participe pas pourra recevoir la liste complète, au cas où quelqu'un perdrait son lien.</p>
       <label>Son prénom<input data-champ="gardien" value="${esc(etat.gardien)}" placeholder="Maman"></label>
-    </section>
+    </section>`}
 
     <div class="barre-action"><button class="principal" data-action="tirer">🎲 Tirer au sort</button></div>
-    <p class="pied">Les noms restent sur ce téléphone et dans les liens que tu envoies : aucun serveur ne les reçoit.</p>`;
+    <p class="pied">Les noms restent sur ce téléphone et dans les liens que tu envoies : aucun serveur ne les reçoit.</p>
+    ${formCollerLien()}`;
 }
 
 function vueResultats() {
   const t = etat.tirage;
-  const envoyes = t.noms.filter(n => t.partages[n]).length;
+  const secretMode = t.mode === 'secret';
+  const aEnvoyer = t.noms.filter(n => !(secretMode && t.local[n]));
+  const envoyes = aEnvoyer.filter(n => t.partages[n]).length;
   const lignes = t.noms.map(n => `
     <li>
-      <span class="qui">${esc(n)}${t.partages[n] ? '<span class="ok">✓ envoyé</span>' : ''}</span>
-      <span class="boutons">
-        <button data-action="partager" data-nom="${esc(n)}">Envoyer</button>
-        <button class="secondaire" data-action="copier" data-nom="${esc(n)}" aria-label="Copier le message pour ${esc(n)}">Copier</button>
+      <span class="qui">${esc(n)}${secretMode && t.local[n] ? '<span class="ok">c\'est toi</span>' : t.partages[n] ? '<span class="ok">✓ envoyé</span>' : ''}</span>
+      <span class="boutons">${secretMode && t.local[n]
+        ? `<button data-action="voir-ma-mission" data-nom="${esc(n)}">Voir ma mission</button>`
+        : `<button data-action="partager" data-nom="${esc(n)}">Envoyer</button>
+           <button class="secondaire" data-action="copier" data-nom="${esc(n)}" aria-label="Copier le message pour ${esc(n)}">Copier</button>`}
       </span>
     </li>`).join('');
-  const gardien = etat.gardien ? `
+  const gardien = !secretMode && etat.gardien ? `
     <h3>Pour le gardien de la liste</h3>
     <ul class="envois"><li>
       <span class="qui">${esc(etat.gardien)}${t.gardienPartage ? '<span class="ok">✓ envoyé</span>' : ''}</span>
@@ -596,29 +849,35 @@ function vueResultats() {
     <header class="entete petit">
       <div class="logo">🎅</div>
       <h1>${esc(etat.titre || 'Père Noël secret')}</h1>
-      <p>Tirage fait le ${esc(dateTirage())}</p>
+      <p>Tirage fait le ${esc(dateTirage())}${secretMode ? ' · 🔒 anti-triche' : ''}</p>
     </header>
 
     <section class="carte">
-      <h2>Envoie à chacun son lien secret</h2>
-      <p class="discret">Touche « Envoyer » puis choisis SMS, WhatsApp, Messenger… Les noms tirés n'apparaissent jamais ici : seul le destinataire les découvre en ouvrant son lien.</p>
+      <h2>Envoie à chacun ${secretMode ? 'sa mission chiffrée' : 'son lien secret'}</h2>
+      <p class="discret">${secretMode
+        ? "Chaque mission ne s'ouvre que sur le téléphone de la personne. Même toi, tu ne peux pas la lire. Touche « Envoyer » puis choisis SMS, WhatsApp…"
+        : "Touche « Envoyer » puis choisis SMS, WhatsApp, Messenger… Les noms tirés n'apparaissent jamais ici : seul le destinataire les découvre en ouvrant son lien."}</p>
       <ul class="envois">${lignes}</ul>
-      <p class="progression">${envoyes} / ${t.noms.length} envoyés</p>
+      <p class="progression">${envoyes} / ${aEnvoyer.length} envoyés</p>
       ${gardien}
     </section>
 
+    ${secretMode ? '' : `
     <section class="carte">
       <h2>Ou en direct, autour de la table</h2>
       <p class="discret">Chacun prend le téléphone à son tour, touche son prénom et découvre sa mission.</p>
       <button class="secondaire large" data-action="mode-telephone">📱 Passer le téléphone</button>
-    </section>
+    </section>`}
 
     <section class="carte">
       <h2>Quelqu'un a perdu son lien ?</h2>
-      <p class="discret" style="margin:0">Renvoie-le avec le bouton « Envoyer » : c'est toujours le même tirage.</p>
+      <p class="discret" style="margin:0">${secretMode
+        ? "Renvoie-le avec « Envoyer ». S'il a changé de téléphone ou effacé les données du site, sa mission est perdue : il doit se réinscrire, et il faut refaire le tirage."
+        : "Renvoie-le avec le bouton « Envoyer » : c'est toujours le même tirage."}</p>
     </section>
 
-    <button class="danger" data-action="recommencer">Modifier la liste et refaire un tirage</button>`;
+    <button class="danger" data-action="recommencer">Modifier la liste et refaire un tirage</button>
+    ${formCollerLien()}`;
 }
 
 function vueTelephone() {
@@ -657,8 +916,10 @@ function afficher(html) {
 function render() {
   const p = lirePayload();
   if (p === false) return afficher(vueLienInvalide());
-  if (p && p.t === 'c') return afficher(vueRevelation(p));
-  if (p && p.t === 'l') return afficher(vueListe(p));
+  if (p) {
+    const vues = { c: vueRevelation, l: vueListe, v: vueInvitation, r: vueInscriptionRecue, s: vueMissionSecrete };
+    return afficher(vues[p.t](p));
+  }
   if (!etat.tirage) return afficher(vueOrganiser());
   if (vue.nom === 'telephone') return afficher(vueTelephone());
   if (vue.nom === 'confirmer') return afficher(vueConfirmer(vue.qui));
@@ -672,12 +933,17 @@ function aller(nouvelle) {
   window.scrollTo(0, 0);
 }
 
+function retourAccueil() {
+  history.replaceState(null, '', location.pathname + location.search);
+  aller({ nom: 'accueil' });
+}
+
 // --- Actions -------------------------------------------------------------------------
 
 function ajouterParticipants(texte) {
   const doublons = [];
   for (const brut of texte.split(/[,;\n]+/)) {
-    const nom = brut.trim().replace(/\s+/g, ' ').slice(0, 40);
+    const nom = propre(brut);
     if (!nom) continue;
     if (etat.participants.some(p => meme(p, nom))) { doublons.push(nom); continue; }
     etat.participants.push(nom);
@@ -707,22 +973,116 @@ function lancerTirage() {
   }
   let attributions;
   try {
-    attributions = tirer(noms, etat.couples, etat.sansReciproque);
+    attributions = tirer(noms, couplesActifs(), etat.sansReciproque);
   } catch (e) {
     return alert(e.message);
   }
   etat.gardien = etat.gardien.trim();
-  etat.tirage = { date: new Date().toISOString(), noms: [...noms], attributions, partages: {}, gardienPartage: false, vus: {} };
+  etat.tirage = { mode: 'simple', date: new Date().toISOString(), noms: [...noms], attributions, partages: {}, gardienPartage: false, vus: {} };
   sauver();
   aller({ nom: 'accueil' });
   toast('Tirage fait ! Envoie maintenant les liens.');
 }
 
+async function lancerTirageSecret() {
+  const inscrits = [...etat.inscrits];
+  if (inscrits.length < 3) return toast('Il faut au moins 3 inscrits.');
+  let attributions;
+  try {
+    attributions = tirer(inscrits.map(i => i.nom), couplesActifs(), etat.sansReciproque);
+  } catch (e) {
+    return alert(e.message);
+  }
+  // Seules les missions chiffrées sont gardées : le résultat en clair n'est jamais enregistré
+  const liens = {};
+  const local = {};
+  for (const i of inscrits) {
+    try {
+      const mission = { d: i.nom, r: attributions[i.nom], ti: etat.titre, b: etat.budget, dt: etat.date, m: etat.mot };
+      liens[i.nom] = lien({ t: 's', id: i.id, ...(await chiffrerPour(i.cle, mission)) });
+    } catch (e) {
+      return alert(`L'inscription de ${i.nom} est abîmée. Retire-la et demande-lui de se réinscrire.`);
+    }
+    if (i.local) local[i.nom] = true;
+  }
+  attributions = null;
+  etat.tirage = { mode: 'secret', date: new Date().toISOString(), noms: inscrits.map(i => i.nom), liens, local, partages: {} };
+  sauver();
+  aller({ nom: 'accueil' });
+  toast('Tirage fait et missions chiffrées ! Envoie maintenant les liens.');
+}
+
+async function ajouterInscrit() {
+  const p = lirePayload();
+  if (!p || p.t !== 'r') return;
+  const nom = propre(p.n);
+  if (!nom || !(await cleValide(p.k))) return alert("Ce lien d'inscription est abîmé. Demande à la personne de te le renvoyer.");
+  const existant = etat.inscrits.find(i => meme(i.nom, nom));
+  if (existant) {
+    if (!confirm(`${existant.nom} est déjà inscrit. Remplacer par cette nouvelle inscription ?`)) return;
+    etat.inscrits = etat.inscrits.filter(i => i !== existant);
+  }
+  etat.inscrits.push({ id: p.id, nom, cle: p.k });
+  sauver();
+  retourAccueil();
+  toast(`${nom} est inscrit !`);
+}
+
+async function inscrireOrganisateur() {
+  const nom = propre(prompt("Ton prénom, comme la famille t'appelle :"));
+  if (!nom) return;
+  if (etat.inscrits.some(i => meme(i.nom, nom))) return toast(`${nom} est déjà inscrit.`);
+  try {
+    const fiche = await inscrire(etat.session, etat.titre, nom);
+    etat.inscrits.push({ id: fiche.id, nom, cle: fiche.cle, local: true });
+    sauver();
+    render();
+    toast(`Tu es inscrit, ${nom} !`);
+  } catch (e) {
+    alert("Ce navigateur ne peut pas garder ta clé secrète (navigation privée ?).");
+  }
+}
+
+async function inscriptionParticipant(nomSaisi) {
+  const p = lirePayload();
+  const nom = propre(nomSaisi);
+  if (!nom) return toast('Écris ton prénom.');
+  if ((vue.fiches || []).some(f => meme(f.nom, nom))) return toast(`${nom} est déjà inscrit sur ce téléphone.`);
+  try {
+    await inscrire(p.s, p.ti, nom);
+  } catch (e) {
+    return alert("Ce navigateur ne peut pas garder ta clé secrète (navigation privée ?). Ouvre le lien dans un onglet normal.");
+  }
+  vue = { nom: 'accueil' };
+  render();
+  toast('Inscription prête : envoie-la maintenant à l\'organisateur.');
+}
+
+function marquerEnvoye(nom) {
+  etat.tirage.partages[nom] = true;
+  sauver();
+  render();
+}
+
 const actions = {
+  'mode': el => {
+    etat.mode = el.dataset.mode;
+    if (secret() && !etat.session) etat.session = idAleatoire();
+    sauver();
+    render();
+  },
   'suppr-participant': el => {
     const nom = el.dataset.nom;
     etat.participants = etat.participants.filter(p => p !== nom);
     etat.couples = etat.couples.filter(([a, b]) => a !== nom && b !== nom);
+    sauver();
+    render();
+  },
+  'suppr-inscrit': el => {
+    const inscrit = etat.inscrits.find(i => i.id === el.dataset.id);
+    if (!inscrit || !confirm(`Retirer ${inscrit.nom} ? Il faudra une nouvelle inscription pour le rajouter.`)) return;
+    etat.inscrits = etat.inscrits.filter(i => i !== inscrit);
+    etat.couples = etat.couples.filter(([a, b]) => a !== inscrit.nom && b !== inscrit.nom);
     sauver();
     render();
   },
@@ -731,24 +1091,26 @@ const actions = {
     sauver();
     render();
   },
-  'tirer': lancerTirage,
+  'partager-invitation': () => partager(messageInvitation()),
+  'm-inscrire': inscrireOrganisateur,
+  'ajouter-inscrit': ajouterInscrit,
+  'envoyer-inscription': async el => {
+    const fiche = vue.fiches.find(f => f.id === el.dataset.id);
+    if (fiche && await partager(messageInscription(fiche))) toast('Inscription envoyée !');
+  },
+  'inscrire-autre': () => { vue.autre = true; render(); },
+  'copier-adresse': async () => { if (await copier(location.href)) toast('Lien copié.'); },
+  'tirer': () => secret() ? lancerTirageSecret() : lancerTirage(),
   'partager': async el => {
-    const nom = el.dataset.nom;
-    if (await partager(messagePersonne(nom))) {
-      etat.tirage.partages[nom] = true;
-      sauver();
-      render();
-    }
+    if (await partager(messagePersonne(el.dataset.nom))) marquerEnvoye(el.dataset.nom);
   },
   'copier': async el => {
-    const nom = el.dataset.nom;
-    if (await copier(messagePersonne(nom))) {
-      etat.tirage.partages[nom] = true;
-      sauver();
-      render();
-      toast(`Message pour ${nom} copié.`);
+    if (await copier(messagePersonne(el.dataset.nom))) {
+      marquerEnvoye(el.dataset.nom);
+      toast(`Message pour ${el.dataset.nom} copié.`);
     }
   },
+  'voir-ma-mission': el => { location.hash = etat.tirage.liens[el.dataset.nom].split('#')[1]; },
   'partager-liste': async () => {
     if (await partager(messageListe())) {
       etat.tirage.gardienPartage = true;
@@ -770,6 +1132,7 @@ const actions = {
       ? "Des liens ont déjà été envoyés : ils montreront toujours l'ancien tirage. Préviens tout le monde de ne plus en tenir compte.\n\nRefaire un tirage ?"
       : 'Revenir à la liste et refaire un tirage ?';
     if (!confirm(texte)) return;
+    etat.mode = etat.tirage.mode || 'simple';
     etat.tirage = null;
     sauver();
     aller({ nom: 'accueil' });
@@ -801,8 +1164,15 @@ $app.addEventListener('click', e => {
 
 $app.addEventListener('submit', e => {
   e.preventDefault();
-  if (e.target.dataset.form === 'participant') ajouterParticipants(document.getElementById('nouveau-nom').value);
-  if (e.target.dataset.form === 'couple') ajouterCouple();
+  const form = e.target.dataset.form;
+  if (form === 'participant') ajouterParticipants(document.getElementById('nouveau-nom').value);
+  if (form === 'couple') ajouterCouple();
+  if (form === 'inscription') inscriptionParticipant(document.getElementById('prenom-inscription').value);
+  if (form === 'coller-lien') {
+    const m = document.getElementById('lien-colle').value.match(/#(p=[A-Za-z0-9_-]+)/);
+    if (!m) return toast("Ce n'est pas un lien du Père Noël secret.");
+    location.hash = m[1];
+  }
 });
 
 function majChamp(e) {
@@ -814,7 +1184,7 @@ function majChamp(e) {
 $app.addEventListener('input', majChamp);
 $app.addEventListener('change', majChamp);
 
-window.addEventListener('hashchange', () => { vue = { nom: 'accueil' }; render(); });
+window.addEventListener('hashchange', () => { vue = { nom: 'accueil' }; render(); window.scrollTo(0, 0); });
 
 render();
 

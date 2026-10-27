@@ -7,7 +7,12 @@ Petite appli web pour tirer au sort le Père Noël secret, depuis un téléphone
 - Mode **« passer le téléphone »** pour un tirage en direct.
 - Une personne qui ne participe pas peut recevoir la liste complète, au cas où.
 
-Rien n'est envoyé à un serveur : la liste reste dans le téléphone de l'organisateur, et le nom tiré est brouillé dans la partie du lien après le `#`, que le navigateur ne transmet pas. Ce brouillage évite de lire un nom par accident, ce n'est pas un chiffrement.
+Rien n'est envoyé à un serveur : la liste reste dans le téléphone de l'organisateur, et le contenu des liens est placé après le `#`, que le navigateur ne transmet pas.
+
+## Deux modes
+
+- **Simple** : l'organisateur saisit les prénoms. Le nom tiré est seulement brouillé dans le lien, pour éviter de le lire par accident.
+- **Anti-triche** : chacun s'inscrit depuis son téléphone, qui crée une clé secrète (ECDH P-256, non exportable, gardée dans le navigateur). L'organisateur ne reçoit que la clé publique et chiffre chaque mission pour son destinataire (AES-GCM). Il ne garde aucun résultat en clair et ne peut lire aucune mission, pas même en refaisant le tirage. Une mission ne s'ouvre que sur le téléphone et dans le navigateur de l'inscription.
 
 ## Installer sur le téléphone
 
