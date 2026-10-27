@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Père Noël secret</title>
+<meta name="description" content="Le tirage au sort du Père Noël secret de la famille.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#b3261e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Père Noël">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+:root {
+  --fond: #fbf6ee;
+  --carte: #ffffff;
+  --texte: #2b1d16;
+  --doux: #6f5f55;
+  --rouge: #b3261e;
+  --rouge-fonce: #8c1d17;
+  --vert: #1e6b45;
+  --vert-clair: #e3f1e9;
+  --bord: #eadfd2;
+  --champ: #fffdf9;
+  --ombre: 0 1px 2px rgba(60, 30, 10, .06), 0 6px 20px rgba(60, 30, 10, .07);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #17110e;
+    --carte: #231b17;
+    --texte: #f3ebe3;
+    --doux: #b5a79c;
+    --rouge: #e0574d;
+    --rouge-fonce: #c4443b;
+    --vert: #5cbf8c;
+    --vert-clair: #1c3328;
+    --bord: #3a2e28;
+    --champ: #1c1512;
+    --ombre: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 20px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+main {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+h1, h2, h3 { line-height: 1.25; margin: 0 0 .5rem; }
+h1 { font-size: 1.6rem; }
+h2 { font-size: 1.1rem; display: flex; align-items: center; gap: .5rem; }
+h2 small { font-weight: 400; color: var(--doux); font-size: .85rem; }
+p { margin: 0 0 .75rem; }
+.entete { text-align: center; padding: 12px 0 20px; }
+.entete .logo { font-size: 3rem; line-height: 1; margin-bottom: 8px; }
+.entete p { color: var(--doux); margin: 0; }
+.entete.petit { padding-bottom: 12px; }
+.entete.petit .logo { font-size: 2.2rem; }
+.carte {
+  background: var(--carte);
+  border: 1px solid var(--bord);
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 16px;
+  box-shadow: var(--ombre);
+}
+.centre { text-align: center; }
+.discret { color: var(--doux); font-size: .92rem; }
+.compte {
+  background: var(--rouge);
+  color: #fff;
+  border-radius: 999px;
+  font-size: .8rem;
+  padding: 1px 9px;
+}
+label { display: block; font-size: .9rem; color: var(--doux); margin-bottom: 12px; }
+label input, label textarea { margin-top: 4px; }
+input, select, textarea {
+  width: 100%;
+  font: inherit;
+  font-size: 16px;
+  color: var(--texte);
+  background: var(--champ);
+  border: 1px solid var(--bord);
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-height: 44px;
+}
+textarea { resize: vertical; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--rouge); outline-offset: 1px; border-color: transparent; }
+button {
+  font: inherit;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--rouge);
+  background: var(--rouge);
+  color: #fff;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+button:active { transform: translateY(1px); }
+button.secondaire { background: transparent; color: var(--rouge); }
+button.danger { background: transparent; color: var(--doux); border-color: var(--bord); width: 100%; font-weight: 500; }
+button.principal { width: 100%; font-size: 1.1rem; min-height: 54px; border-radius: 14px; }
+button.large { width: 100%; }
+button:focus-visible { outline: 3px solid var(--vert); outline-offset: 2px; }
+.ligne { display: flex; gap: 8px; margin-bottom: 12px; }
+.ligne input { flex: 1; min-width: 0; }
+.ligne.couple { flex-wrap: wrap; align-items: center; }
+.ligne.couple select { flex: 1 1 120px; min-width: 0; }
+.ligne.couple span { color: var(--doux); }
+.puces, .couples, .envois, .liste-complete { list-style: none; margin: 0; padding: 0; }
+.puces { display: flex; flex-wrap: wrap; gap: 8px; }
+.puces li {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--vert-clair);
+  color: var(--vert);
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 2px 4px 2px 12px;
+}
+.puces button, .couples button {
+  min-height: 32px;
+  width: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+.couples li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--bord);
+}
+.couples li span { color: var(--rouge); }
+.couples li button { margin-left: auto; color: var(--doux); }
+.case { display: flex; gap: 10px; align-items: flex-start; color: var(--texte); margin: 14px 0 0; font-size: 1rem; }
+.case input { width: 22px; height: 22px; min-height: 0; margin: 2px 0 0; accent-color: var(--rouge); flex: none; }
+.case small { display: block; color: var(--doux); }
+.deux { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.barre-action {
+  position: sticky;
+  bottom: 0;
+  padding: 12px 0 calc(8px + env(safe-area-inset-bottom));
+  background: linear-gradient(to bottom, transparent, var(--fond) 30%);
+}
+.pied { text-align: center; color: var(--doux); font-size: .85rem; margin-top: 8px; }
+.pied a { color: var(--rouge); }
+.envois li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--bord);
+}
+.envois li:last-child { border-bottom: 0; }
+.envois .qui { flex: 1; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.envois .ok { display: block; color: var(--vert); font-size: .8rem; font-weight: 600; }
+.envois .boutons { display: flex; gap: 6px; flex: none; }
+.envois button { padding: 6px 12px; min-height: 40px; }
+.progression { text-align: right; color: var(--doux); font-size: .85rem; margin: 8px 0 0; }
+h3 { font-size: 1rem; margin-top: 16px; color: var(--doux); font-weight: 600; }
+.grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.grille button { min-height: 72px; font-size: 1.1rem; border-radius: 14px; overflow-wrap: anywhere; }
+.grille button.vu { background: var(--carte); color: var(--doux); border-color: var(--bord); }
+.grille button small { display: block; font-size: .8rem; font-weight: 500; }
+.centre button + button { margin-top: 10px; }
+.fete { position: relative; overflow: hidden; text-align: center; padding: 28px 20px; }
+.fete > * { position: relative; }
+.sur-titre { text-transform: uppercase; letter-spacing: .08em; font-size: .78rem; color: var(--rouge); font-weight: 700; }
+.mission {
+  margin: 18px 0;
+  padding: 18px 12px;
+  border: 2px dashed var(--rouge);
+  border-radius: 14px;
+  animation: ouvrir .5s ease-out;
+}
+.mission p { margin: 0; }
+.nom-tire { font-size: 2rem; font-weight: 800; color: var(--rouge); margin-top: 6px !important; overflow-wrap: anywhere; }
+.extras { list-style: none; padding: 0; margin: 0 0 14px; color: var(--doux); }
+.mot { font-style: italic; }
+.signature { margin-top: 20px; color: var(--doux); }
+.fete button { margin-top: 6px; }
+.neige { position: absolute !important; inset: 0; pointer-events: none; }
+.neige span {
+  position: absolute;
+  top: -20px;
+  color: var(--bord);
+  animation: tomber linear infinite;
+}
+@keyframes tomber { to { transform: translateY(110vh) rotate(180deg); } }
+@keyframes ouvrir { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+.liste-complete li {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--bord);
+  text-align: left;
+}
+.liste-complete .fleche { color: var(--doux); font-size: .85rem; align-self: center; }
+.liste-complete li span:last-child { text-align: right; font-weight: 600; }
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  background: var(--texte);
+  color: var(--fond);
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: .95rem;
+  max-width: calc(100% - 32px);
+  box-shadow: var(--ombre);
+  opacity: 0;
+  transition: opacity .2s;
+  pointer-events: none;
+  z-index: 10;
+}
+.toast.visible { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .neige { display: none; }
+  .mission { animation: none; }
+}
+@media (max-width: 380px) {
+  .deux { grid-template-columns: 1fr; gap: 0; }
+  .envois li { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+'use strict';
+
+const CLE = 'pere-noel-secret-v1';
+const $app = document.getElementById('app');
+
+const etatVide = () => ({
+  titre: '', participants: [], couples: [], sansReciproque: true,
+  budget: '', date: '', mot: '', gardien: '', tirage: null
+});
+
+let etat = charger();
+let vue = { nom: 'accueil' };
+
+function charger() {
+  try {
+    const s = JSON.parse(localStorage.getItem(CLE));
+    if (s && Array.isArray(s.participants)) return Object.assign(etatVide(), s);
+  } catch (e) { }
+  return etatVide();
+}
+
+function sauver() {
+  try { localStorage.setItem(CLE, JSON.stringify(etat)); } catch (e) { }
+}
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const meme = (a, b) => a.toLocaleLowerCase('fr') === b.toLocaleLowerCase('fr');
+
+// --- Tirage -----------------------------------------------------------------
+
+function hasard(n) {
+  const a = new Uint32Array(1);
+  crypto.getRandomValues(a);
+  return a[0] % n;
+}
+
+function melanger(t) {
+  for (let i = t.length - 1; i > 0; i--) {
+    const j = hasard(i + 1);
+    [t[i], t[j]] = [t[j], t[i]];
+  }
+  return t;
+}
+
+function tirer(noms, couples, sansReciproque) {
+  const interdit = new Map(noms.map(n => [n, new Set([n])]));
+  for (const [a, b] of couples) {
+    interdit.get(a).add(b);
+    interdit.get(b).add(a);
+  }
+  for (const n of noms) {
+    if (interdit.get(n).size >= noms.length) throw new Error(`${n} ne peut offrir à personne avec ces couples.`);
+  }
+  const valide = att => noms.every(d => !interdit.get(d).has(att[d]) && !(sansReciproque && att[att[d]] === d));
+
+  // Permutations au hasard jusqu'à en trouver une valide : chaque tirage possible a la même chance
+  const receveurs = [...noms];
+  for (let essai = 0; essai < 20000; essai++) {
+    melanger(receveurs);
+    const att = Object.create(null);
+    noms.forEach((d, i) => { att[d] = receveurs[i]; });
+    if (valide(att)) return att;
+  }
+
+  // Contraintes très serrées : recherche exhaustive
+  const ordre = [...noms].sort((a, b) => interdit.get(b).size - interdit.get(a).size);
+  const att = Object.create(null);
+  const pris = new Set();
+  let etapes = 0;
+  const placer = k => {
+    if (k === ordre.length) return true;
+    if (++etapes > 500000) return false;
+    const d = ordre[k];
+    for (const r of melanger([...noms])) {
+      if (pris.has(r) || interdit.get(d).has(r) || (sansReciproque && att[r] === d)) continue;
+      att[d] = r;
+      pris.add(r);
+      if (placer(k + 1)) return true;
+      delete att[d];
+      pris.delete(r);
+    }
+    return false;
+  };
+  if (placer(0)) return att;
+  throw new Error("Tirage impossible avec ces couples. Retire un couple ou autorise les échanges réciproques.");
+}
+
+// --- Liens secrets ------------------------------------------------------------
+// Le nom tiré est brouillé dans le lien (pas chiffré) : illisible d'un coup d'œil,
+// et placé après le # pour ne jamais être envoyé au serveur.
+
+function coder(obj) {
+  const octets = new TextEncoder().encode(JSON.stringify(obj));
+  const sel = crypto.getRandomValues(new Uint8Array(4));
+  const sortie = new Uint8Array(4 + octets.length);
+  sortie.set(sel);
+  for (let i = 0; i < octets.length; i++) sortie[4 + i] = octets[i] ^ sel[i % 4] ^ ((i * 37 + 11) & 255);
+  let s = '';
+  sortie.forEach(x => { s += String.fromCharCode(x); });
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function decoder(texte) {
+  try {
+    const s = atob(texte.replace(/-/g, '+').replace(/_/g, '/'));
+    const octets = new Uint8Array(s.length - 4);
+    for (let i = 0; i < octets.length; i++) octets[i] = s.charCodeAt(4 + i) ^ s.charCodeAt(i % 4) ^ ((i * 37 + 11) & 255);
+    return JSON.parse(new TextDecoder().decode(octets));
+  } catch (e) {
+    return null;
+  }
+}
+
+function lirePayload() {
+  const m = location.hash.match(/^#p=([A-Za-z0-9_-]+)$/);
+  if (!location.hash || location.hash === '#') return null;
+  if (!m) return false;
+  const p = decoder(m[1]);
+  if (!p || (p.t !== 'c' && p.t !== 'l')) return false;
+  return p;
+}
+
+const base = () => location.href.split('#')[0];
+
+function lienPersonne(nom) {
+  return base() + '#p=' + coder({
+    t: 'c', d: nom, r: etat.tirage.attributions[nom],
+    ti: etat.titre, b: etat.budget, dt: etat.date, m: etat.mot
+  });
+}
+
+function lienListe() {
+  return base() + '#p=' + coder({
+    t: 'l', ti: etat.titre, dt0: dateTirage(),
+    l: etat.tirage.noms.map(n => [n, etat.tirage.attributions[n]])
+  });
+}
+
+function messagePersonne(nom) {
+  const titre = etat.titre ? ` « ${etat.titre} »` : '';
+  return `🎅 Coucou ${nom} ! Le tirage du Père Noël secret${titre} a eu lieu. Ouvre ce lien quand personne ne regarde pour découvrir ta mission :\n${lienPersonne(nom)}`;
+}
+
+function messageListe() {
+  return `🎅 Coucou ${etat.gardien} ! Voici la liste complète du Père Noël secret, à garder pour toi au cas où quelqu'un perdrait son lien. Ne l'ouvre pas devant les autres :\n${lienListe()}`;
+}
+
+const dateTirage = () => new Date(etat.tirage.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+// --- Partage ----------------------------------------------------------------------
+
+async function copier(texte) {
+  try {
+    await navigator.clipboard.writeText(texte);
+    return true;
+  } catch (e) {
+    const t = document.createElement('textarea');
+    t.value = texte;
+    t.setAttribute('readonly', '');
+    t.style.position = 'fixed';
+    t.style.opacity = '0';
+    document.body.appendChild(t);
+    t.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (_) { }
+    t.remove();
+    return ok;
+  }
+}
+
+async function partager(texte) {
+  if (navigator.share) {
+    try {
+      await navigator.share({ text: texte });
+      return true;
+    } catch (e) {
+      if (e.name === 'AbortError') return false;
+    }
+  }
+  if (await copier(texte)) {
+    toast('Message copié : colle-le dans un SMS ou sur WhatsApp.');
+    return true;
+  }
+  toast("Impossible de copier sur cet appareil.");
+  return false;
+}
+
+let minuteurToast;
+function toast(texte) {
+  const t = document.getElementById('toast');
+  t.textContent = texte;
+  t.classList.add('visible');
+  clearTimeout(minuteurToast);
+  minuteurToast = setTimeout(() => t.classList.remove('visible'), 2800);
+}
+
+// --- Vues --------------------------------------------------------------------------
+
+function flocons() {
+  let h = '';
+  for (let i = 0; i < 16; i++) {
+    const taille = 10 + Math.random() * 14;
+    h += `<span style="left:${Math.random() * 100}%;font-size:${taille}px;animation-duration:${7 + Math.random() * 8}s;animation-delay:-${Math.random() * 12}s">❄</span>`;
+  }
+  return `<div class="neige" aria-hidden="true">${h}</div>`;
+}
+
+function carteMission(p, revele, boutons) {
+  const extras = [
+    p.b ? `<li>Budget : <strong>${esc(p.b)}</strong></li>` : '',
+    p.dt ? `<li>On se retrouve <strong>${esc(p.dt)}</strong> pour la grande distribution !</li>` : '',
+    p.m ? `<li class="mot">« ${esc(p.m)} »</li>` : ''
+  ].join('');
+  return `
+    <section class="carte fete">
+      ${flocons()}
+      <p class="sur-titre">${esc(p.ti || 'Père Noël secret')}</p>
+      <h1>Coucou ${esc(p.d)} ! 🎅</h1>
+      <p>Le Père Noël est débordé cette année, alors il a demandé un coup de main à toute la famille… et il compte sur toi ! 🎄</p>
+      ${revele ? `
+        <div class="mission">
+          <p>Ta mission : préparer un joli cadeau pour</p>
+          <p class="nom-tire">🎁 ${esc(p.r)} 🎁</p>
+        </div>
+        ${extras ? `<ul class="extras">${extras}</ul>` : ''}
+        <p>Surtout, garde le secret : personne ne doit savoir que tu es le lutin de ${esc(p.r)}. 🤫</p>
+      ` : `<p class="discret">Vérifie que personne ne regarde ton écran…</p>`}
+      ${boutons}
+      <p class="signature">Plein de bisous et joyeuses fêtes !<br>Le Père Noël (et ses lutins)</p>
+    </section>`;
+}
+
+function vueRevelation(p) {
+  const boutons = vue.revele
+    ? `<button class="secondaire" data-action="cacher">Cacher</button>`
+    : `<button class="principal" data-action="reveler">Découvrir ma mission</button>`;
+  return carteMission(p, vue.revele, boutons) +
+    `<p class="pied"><a href="./">Organiser mon propre tirage</a></p>`;
+}
+
+function vueListe(p) {
+  const lignes = (p.l || []).map(([d, r]) => `<li><span>${esc(d)}</span><span class="fleche">offre à</span><span>${esc(r)}</span></li>`).join('');
+  return `
+    <section class="carte fete">
+      <p class="sur-titre">${esc(p.ti || 'Père Noël secret')}</p>
+      <h1>La liste complète 📜</h1>
+      <p>Tirage du ${esc(p.dt0)}. À garder pour toi, au cas où quelqu'un perdrait son lien. 🤫</p>
+      ${vue.listeVisible
+        ? `<ul class="liste-complete">${lignes}</ul><button class="secondaire" data-action="cacher-liste">Cacher la liste</button>`
+        : `<button class="principal" data-action="afficher-liste">Afficher la liste</button>`}
+    </section>`;
+}
+
+function vueLienInvalide() {
+  return `
+    <section class="carte centre">
+      <h1>Lien abîmé 😕</h1>
+      <p>Ce lien est incomplet. Il a peut-être été coupé en le copiant : demande à l'organisateur de te le renvoyer.</p>
+      <p><a href="./">Organiser un tirage</a></p>
+    </section>`;
+}
+
+function options(choix) {
+  return `<option value="">Choisir…</option>` + etat.participants.map(n => `<option${n === choix ? ' selected' : ''}>${esc(n)}</option>`).join('');
+}
+
+function vueOrganiser() {
+  const n = etat.participants.length;
+  const puces = etat.participants.map(p => `<li>${esc(p)}<button type="button" data-action="suppr-participant" data-nom="${esc(p)}" aria-label="Retirer ${esc(p)}">×</button></li>`).join('');
+  const couples = etat.couples.map((c, i) => `<li>${esc(c[0])} <span>❤</span> ${esc(c[1])}<button type="button" data-action="suppr-couple" data-i="${i}" aria-label="Retirer ce couple">×</button></li>`).join('');
+  return `
+    <header class="entete">
+      <div class="logo">🎅</div>
+      <h1>Père Noël secret</h1>
+      <p>Le tirage au sort de la famille, sans que personne ne triche.</p>
+    </header>
+
+    <section class="carte">
+      <h2>1. Les participants <span class="compte">${n}</span></h2>
+      <form class="ligne" data-form="participant">
+        <input id="nouveau-nom" placeholder="Prénom" autocomplete="off" enterkeyhint="done" maxlength="200" aria-label="Prénom à ajouter">
+        <button>Ajouter</button>
+      </form>
+      ${n ? `<ul class="puces">${puces}</ul>` : `<p class="discret">Ajoute toutes les personnes qui offrent un cadeau. Tu peux en mettre plusieurs d'un coup, séparées par des virgules.</p>`}
+    </section>
+
+    <section class="carte">
+      <h2>2. Les couples à séparer</h2>
+      <p class="discret">Les deux personnes d'un couple ne pourront pas se tirer l'une l'autre.</p>
+      <form class="ligne couple" data-form="couple">
+        <select id="couple-a" aria-label="Première personne">${options()}</select>
+        <span>et</span>
+        <select id="couple-b" aria-label="Deuxième personne">${options()}</select>
+        <button>Ajouter</button>
+      </form>
+      ${couples ? `<ul class="couples">${couples}</ul>` : ''}
+      <label class="case">
+        <input type="checkbox" data-champ="sansReciproque"${etat.sansReciproque ? ' checked' : ''}>
+        <span>Interdire les échanges réciproques<small>Si A offre à B, B n'offre pas à A.</small></span>
+      </label>
+    </section>
+
+    <section class="carte">
+      <h2>3. Les détails <small>facultatif</small></h2>
+      <label>Nom du tirage<input data-champ="titre" value="${esc(etat.titre)}" placeholder="Noël 2026 en famille"></label>
+      <div class="deux">
+        <label>Budget<input data-champ="budget" value="${esc(etat.budget)}" placeholder="20 €"></label>
+        <label>Échange des cadeaux<input data-champ="date" value="${esc(etat.date)}" placeholder="le 24 décembre"></label>
+      </div>
+      <label>Petit mot pour tout le monde<textarea data-champ="mot" rows="2" placeholder="On se retrouve chez Mamie !">${esc(etat.mot)}</textarea></label>
+    </section>
+
+    <section class="carte">
+      <h2>4. Gardien de la liste <small>facultatif</small></h2>
+      <p class="discret">Une personne qui ne participe pas pourra recevoir la liste complète, au cas où quelqu'un perdrait son lien.</p>
+      <label>Son prénom<input data-champ="gardien" value="${esc(etat.gardien)}" placeholder="Maman"></label>
+    </section>
+
+    <div class="barre-action"><button class="principal" data-action="tirer">🎲 Tirer au sort</button></div>
+    <p class="pied">Les noms restent sur ce téléphone et dans les liens que tu envoies : aucun serveur ne les reçoit.</p>`;
+}
+
+function vueResultats() {
+  const t = etat.tirage;
+  const envoyes = t.noms.filter(n => t.partages[n]).length;
+  const lignes = t.noms.map(n => `
+    <li>
+      <span class="qui">${esc(n)}${t.partages[n] ? '<span class="ok">✓ envoyé</span>' : ''}</span>
+      <span class="boutons">
+        <button data-action="partager" data-nom="${esc(n)}">Envoyer</button>
+        <button class="secondaire" data-action="copier" data-nom="${esc(n)}" aria-label="Copier le message pour ${esc(n)}">Copier</button>
+      </span>
+    </li>`).join('');
+  const gardien = etat.gardien ? `
+    <h3>Pour le gardien de la liste</h3>
+    <ul class="envois"><li>
+      <span class="qui">${esc(etat.gardien)}${t.gardienPartage ? '<span class="ok">✓ envoyé</span>' : ''}</span>
+      <span class="boutons">
+        <button data-action="partager-liste">Envoyer</button>
+        <button class="secondaire" data-action="copier-liste" aria-label="Copier le message pour ${esc(etat.gardien)}">Copier</button>
+      </span>
+    </li></ul>` : '';
+  return `
+    <header class="entete petit">
+      <div class="logo">🎅</div>
+      <h1>${esc(etat.titre || 'Père Noël secret')}</h1>
+      <p>Tirage fait le ${esc(dateTirage())}</p>
+    </header>
+
+    <section class="carte">
+      <h2>Envoie à chacun son lien secret</h2>
+      <p class="discret">Touche « Envoyer » puis choisis SMS, WhatsApp, Messenger… Les noms tirés n'apparaissent jamais ici : seul le destinataire les découvre en ouvrant son lien.</p>
+      <ul class="envois">${lignes}</ul>
+      <p class="progression">${envoyes} / ${t.noms.length} envoyés</p>
+      ${gardien}
+    </section>
+
+    <section class="carte">
+      <h2>Ou en direct, autour de la table</h2>
+      <p class="discret">Chacun prend le téléphone à son tour, touche son prénom et découvre sa mission.</p>
+      <button class="secondaire large" data-action="mode-telephone">📱 Passer le téléphone</button>
+    </section>
+
+    <section class="carte">
+      <h2>Quelqu'un a perdu son lien ?</h2>
+      <p class="discret" style="margin:0">Renvoie-le avec le bouton « Envoyer » : c'est toujours le même tirage.</p>
+    </section>
+
+    <button class="danger" data-action="recommencer">Modifier la liste et refaire un tirage</button>`;
+}
+
+function vueTelephone() {
+  const t = etat.tirage;
+  const boutons = t.noms.map(n => `<button class="${t.vus[n] ? 'vu' : ''}" data-action="choisir" data-nom="${esc(n)}">${esc(n)}${t.vus[n] ? '<small>✓ déjà vu</small>' : ''}</button>`).join('');
+  return `
+    <header class="entete petit">
+      <div class="logo">📱</div>
+      <h1>Passe le téléphone</h1>
+      <p>Chacun touche son prénom, quand personne ne regarde.</p>
+    </header>
+    <div class="grille">${boutons}</div>
+    <button class="secondaire large" data-action="quitter-telephone">Terminer</button>`;
+}
+
+function vueConfirmer(nom) {
+  return `
+    <section class="carte centre">
+      <div class="entete petit"><div class="logo">🤫</div></div>
+      <h1>C'est bien toi, ${esc(nom)} ?</h1>
+      <p class="discret">Vérifie que personne ne regarde l'écran.</p>
+      <button class="principal" data-action="voir">Oui, c'est moi</button>
+      <button class="secondaire large" data-action="retour-telephone">Non, retour</button>
+    </section>`;
+}
+
+function vueVoir(nom) {
+  const p = { d: nom, r: etat.tirage.attributions[nom], ti: etat.titre, b: etat.budget, dt: etat.date, m: etat.mot };
+  return carteMission(p, true, `<button class="principal" data-action="vu">J'ai vu, je cache</button>`);
+}
+
+function afficher(html) {
+  $app.innerHTML = html;
+}
+
+function render() {
+  const p = lirePayload();
+  if (p === false) return afficher(vueLienInvalide());
+  if (p && p.t === 'c') return afficher(vueRevelation(p));
+  if (p && p.t === 'l') return afficher(vueListe(p));
+  if (!etat.tirage) return afficher(vueOrganiser());
+  if (vue.nom === 'telephone') return afficher(vueTelephone());
+  if (vue.nom === 'confirmer') return afficher(vueConfirmer(vue.qui));
+  if (vue.nom === 'voir') return afficher(vueVoir(vue.qui));
+  afficher(vueResultats());
+}
+
+function aller(nouvelle) {
+  vue = nouvelle;
+  render();
+  window.scrollTo(0, 0);
+}
+
+// --- Actions -------------------------------------------------------------------------
+
+function ajouterParticipants(texte) {
+  const doublons = [];
+  for (const brut of texte.split(/[,;\n]+/)) {
+    const nom = brut.trim().replace(/\s+/g, ' ').slice(0, 40);
+    if (!nom) continue;
+    if (etat.participants.some(p => meme(p, nom))) { doublons.push(nom); continue; }
+    etat.participants.push(nom);
+  }
+  sauver();
+  render();
+  document.getElementById('nouveau-nom').focus();
+  if (doublons.length) toast(`Déjà dans la liste : ${doublons.join(', ')}. Ajoute une initiale pour les distinguer.`);
+}
+
+function ajouterCouple() {
+  const a = document.getElementById('couple-a').value;
+  const b = document.getElementById('couple-b').value;
+  if (!a || !b) return toast('Choisis deux personnes.');
+  if (a === b) return toast('Choisis deux personnes différentes.');
+  if (etat.couples.some(([x, y]) => (x === a && y === b) || (x === b && y === a))) return toast('Ce couple est déjà là.');
+  etat.couples.push([a, b]);
+  sauver();
+  render();
+}
+
+function lancerTirage() {
+  const noms = etat.participants;
+  if (noms.length < 3) return toast('Il faut au moins 3 participants.');
+  if (etat.gardien.trim() && noms.some(n => meme(n, etat.gardien.trim()))) {
+    if (!confirm(`${etat.gardien.trim()} participe aussi : en recevant la liste complète, la surprise sera gâchée pour cette personne. Continuer ?`)) return;
+  }
+  let attributions;
+  try {
+    attributions = tirer(noms, etat.couples, etat.sansReciproque);
+  } catch (e) {
+    return alert(e.message);
+  }
+  etat.gardien = etat.gardien.trim();
+  etat.tirage = { date: new Date().toISOString(), noms: [...noms], attributions, partages: {}, gardienPartage: false, vus: {} };
+  sauver();
+  aller({ nom: 'accueil' });
+  toast('Tirage fait ! Envoie maintenant les liens.');
+}
+
+const actions = {
+  'suppr-participant': el => {
+    const nom = el.dataset.nom;
+    etat.participants = etat.participants.filter(p => p !== nom);
+    etat.couples = etat.couples.filter(([a, b]) => a !== nom && b !== nom);
+    sauver();
+    render();
+  },
+  'suppr-couple': el => {
+    etat.couples.splice(Number(el.dataset.i), 1);
+    sauver();
+    render();
+  },
+  'tirer': lancerTirage,
+  'partager': async el => {
+    const nom = el.dataset.nom;
+    if (await partager(messagePersonne(nom))) {
+      etat.tirage.partages[nom] = true;
+      sauver();
+      render();
+    }
+  },
+  'copier': async el => {
+    const nom = el.dataset.nom;
+    if (await copier(messagePersonne(nom))) {
+      etat.tirage.partages[nom] = true;
+      sauver();
+      render();
+      toast(`Message pour ${nom} copié.`);
+    }
+  },
+  'partager-liste': async () => {
+    if (await partager(messageListe())) {
+      etat.tirage.gardienPartage = true;
+      sauver();
+      render();
+    }
+  },
+  'copier-liste': async () => {
+    if (await copier(messageListe())) {
+      etat.tirage.gardienPartage = true;
+      sauver();
+      render();
+      toast('Message pour le gardien copié.');
+    }
+  },
+  'recommencer': () => {
+    const dejaEnvoye = Object.keys(etat.tirage.partages).length || etat.tirage.gardienPartage;
+    const texte = dejaEnvoye
+      ? "Des liens ont déjà été envoyés : ils montreront toujours l'ancien tirage. Préviens tout le monde de ne plus en tenir compte.\n\nRefaire un tirage ?"
+      : 'Revenir à la liste et refaire un tirage ?';
+    if (!confirm(texte)) return;
+    etat.tirage = null;
+    sauver();
+    aller({ nom: 'accueil' });
+  },
+  'mode-telephone': () => aller({ nom: 'telephone' }),
+  'quitter-telephone': () => aller({ nom: 'accueil' }),
+  'retour-telephone': () => aller({ nom: 'telephone' }),
+  'choisir': el => {
+    const nom = el.dataset.nom;
+    if (etat.tirage.vus[nom] && !confirm(`${nom} a déjà vu sa mission. La revoir ?`)) return;
+    aller({ nom: 'confirmer', qui: nom });
+  },
+  'voir': () => aller({ nom: 'voir', qui: vue.qui }),
+  'vu': () => {
+    etat.tirage.vus[vue.qui] = true;
+    sauver();
+    aller({ nom: 'telephone' });
+  },
+  'reveler': () => { vue.revele = true; render(); },
+  'cacher': () => { vue.revele = false; render(); },
+  'afficher-liste': () => { vue.listeVisible = true; render(); },
+  'cacher-liste': () => { vue.listeVisible = false; render(); }
+};
+
+$app.addEventListener('click', e => {
+  const el = e.target.closest('[data-action]');
+  if (el && actions[el.dataset.action]) actions[el.dataset.action](el);
+});
+
+$app.addEventListener('submit', e => {
+  e.preventDefault();
+  if (e.target.dataset.form === 'participant') ajouterParticipants(document.getElementById('nouveau-nom').value);
+  if (e.target.dataset.form === 'couple') ajouterCouple();
+});
+
+function majChamp(e) {
+  const champ = e.target.dataset.champ;
+  if (!champ) return;
+  etat[champ] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+  sauver();
+}
+$app.addEventListener('input', majChamp);
+$app.addEventListener('change', majChamp);
+
+window.addEventListener('hashchange', () => { vue = { nom: 'accueil' }; render(); });
+
+render();
+
+if ('serviceWorker' in navigator && window.isSecureContext) {
+  navigator.serviceWorker.register('sw.js').catch(() => { });
+}
+</script>
+</body>
+</html>
