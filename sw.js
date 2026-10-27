@@ -1,4 +1,4 @@
-const CACHE = 'pere-noel-secret-v2';
+const CACHE = 'pere-noel-secret-v3';
 const FICHIERS = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

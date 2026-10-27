@@ -277,7 +277,7 @@ const $app = document.getElementById('app');
 
 const etatVide = () => ({
   mode: 'simple', titre: '', participants: [], couples: [], sansReciproque: true,
-  budget: '', date: '', mot: '', gardien: '', session: '', inscrits: [], tirage: null
+  budget: '', date: '', mot: '', gardien: '', session: '', orgPub: '', inscrits: [], tirage: null
 });
 
 let etat = charger();
@@ -401,7 +401,10 @@ function lirePayload() {
   const m = location.hash.match(/^#p=([A-Za-z0-9_-]+)$/);
   if (!m) return false;
   const p = decoder(m[1]);
-  if (!p || !['c', 'l', 'v', 'r', 's'].includes(p.t)) return false;
+  if (!p || typeof p !== 'object' || !['c', 'l', 'v', 'r', 's'].includes(p.t)) return false;
+  const textes = ['d', 'r', 'ti', 'b', 'dt', 'm', 'dt0', 's', 'id', 'n', 'k', 'o', 'e', 'iv', 'c', 'g'];
+  if (textes.some(k => k in p && typeof p[k] !== 'string')) return false;
+  if ('l' in p && !(Array.isArray(p.l) && p.l.every(x => Array.isArray(x) && x.length === 2 && x.every(y => typeof y === 'string')))) return false;
   return p;
 }
 
@@ -475,11 +478,37 @@ const garderCle = fiche => magasin('readwrite', s => s.put(fiche));
 const lireCle = id => magasin('readonly', s => s.get(id));
 const lireCles = () => magasin('readonly', s => s.getAll());
 
-async function inscrire(session, titre, nom) {
+// L'organisateur signe chaque mission (ECDSA P-256). Le participant a reçu la clé publique
+// de signature avec l'invitation et refuse toute mission qui n'est pas signée par elle.
+
+const ECDSA = { name: 'ECDSA', namedCurve: 'P-256' };
+const SIGNATURE = { name: 'ECDSA', hash: 'SHA-256' };
+const contenuSigne = p => new TextEncoder().encode([p.id, p.e, p.iv, p.c].join('.'));
+const idOrganisateur = session => 'organisateur:' + session;
+
+async function nouvelleSession() {
+  const paire = await crypto.subtle.generateKey(ECDSA, false, ['sign', 'verify']);
+  const session = idAleatoire();
+  await garderCle({ id: idOrganisateur(session), organisateur: true, session, privee: paire.privateKey });
+  etat.session = session;
+  etat.orgPub = b64.enc(await crypto.subtle.exportKey('raw', paire.publicKey));
+  etat.inscrits = [];
+}
+
+async function signatureValide(orgPub, p) {
+  try {
+    const cle = await crypto.subtle.importKey('raw', b64.dec(orgPub), ECDSA, false, ['verify']);
+    return await crypto.subtle.verify(SIGNATURE, cle, b64.dec(p.g), contenuSigne(p));
+  } catch (e) {
+    return false;
+  }
+}
+
+async function inscrire(session, titre, nom, org) {
   const cle = await creerCle();
   const id = idAleatoire();
   const adresse = lien({ t: 'r', s: session, id, n: nom, k: cle.publique });
-  await garderCle({ id, session, titre, nom, privee: cle.privee, lien: adresse, cree: Date.now() });
+  await garderCle({ id, session, titre, nom, org, privee: cle.privee, lien: adresse, cree: Date.now() });
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { }
   return { id, nom, cle: cle.publique, lien: adresse };
 }
@@ -508,7 +537,7 @@ function messageListe() {
 }
 
 function messageInvitation() {
-  return `🎅 Le Père Noël secret${titreCite()} se prépare ! Ouvre ce lien sur ton téléphone pour t'inscrire, puis renvoie-moi le lien qu'il te donnera :\n${lien({ t: 'v', s: etat.session, ti: etat.titre })}`;
+  return `🎅 Le Père Noël secret${titreCite()} se prépare ! Ouvre ce lien sur ton téléphone pour t'inscrire, puis renvoie-moi le lien qu'il te donnera :\n${lien({ t: 'v', s: etat.session, ti: etat.titre, o: etat.orgPub })}`;
 }
 
 const messageInscription = fiche => `🎅 Voici mon inscription au Père Noël secret (${fiche.nom}). Ouvre ce lien sur ton téléphone d'organisateur :\n${fiche.lien}`;
@@ -624,11 +653,23 @@ function vueMissionSecrete(p) {
     if (!vue.enCours) {
       vue.enCours = true;
       const v = vue;
-      lireCle(p.id)
-        .then(fiche => fiche ? dechiffrer(fiche.privee, p).then(m => { v.mission = m; }, () => { v.mission = null; v.erreur = 'illisible'; })
-                             : (v.mission = null, v.erreur = 'absente'))
-        .catch(() => { v.mission = null; v.erreur = 'stockage'; })
-        .then(() => { if (vue === v) render(); });
+      (async () => {
+        const fiche = await lireCle(p.id);
+        if (!fiche) return 'absente';
+        // La signature est vérifiée avant tout déchiffrement
+        if (!fiche.org || !p.g || !(await signatureValide(fiche.org, p))) return 'fausse';
+        try {
+          v.mission = await dechiffrer(fiche.privee, p);
+          return null;
+        } catch (e) {
+          return 'illisible';
+        }
+      })()
+        .catch(() => 'stockage')
+        .then(erreur => {
+          if (erreur) { v.mission = null; v.erreur = erreur; }
+          if (vue === v) render();
+        });
     }
     return chargement('Ouverture de ta mission… 🔒');
   }
@@ -638,6 +679,7 @@ function vueMissionSecrete(p) {
       <p class="discret">Tu t'es inscrit dans l'appli installée sur l'écran d'accueil ? Ouvre-la et colle ce lien dans « J'ai reçu un lien ».</p>
       <p class="discret">Tu as changé de téléphone ou effacé les données du site ? Ta mission est perdue : demande à l'organisateur de refaire un tirage, et réinscris-toi.</p>`,
     illisible: `<p>Ce lien ne correspond pas à ton inscription sur ce téléphone. Demande à l'organisateur de te le renvoyer.</p>`,
+    fausse: `<p>Cette mission n'a pas été créée par l'organisateur de ton tirage. Ne t'y fie pas, et préviens-le.</p>`,
     stockage: `<p>Ce navigateur ne donne pas accès à ta clé secrète (navigation privée ?). Ouvre le lien dans un onglet normal.</p>`
   };
   return `
@@ -663,12 +705,13 @@ function vueListe(p) {
 }
 
 function vueInvitation(p) {
+  if (!p.s || !p.o) return vueLienInvalide();
   if (!vue.fiches) {
     if (!vue.enCours) {
       vue.enCours = true;
       const v = vue;
       lireCles()
-        .then(f => { v.fiches = f.filter(x => x.session === p.s); }, () => { v.fiches = []; v.stockageKo = true; })
+        .then(f => { v.fiches = f.filter(x => x.session === p.s && !x.organisateur); }, () => { v.fiches = []; v.stockageKo = true; })
         .then(() => { if (vue === v) render(); });
     }
     return chargement('Chargement…');
@@ -711,7 +754,9 @@ function vueInscriptionRecue(p) {
   } else if (etat.inscrits.some(i => i.id === p.id)) {
     corps = `<p>${n} est déjà inscrit. ✓</p>`;
   } else {
-    corps = `<p>${n} veut participer au tirage.</p><button class="principal" data-action="ajouter-inscrit">Ajouter ${n}</button>`;
+    corps = `<p>${n} veut participer au tirage.</p>
+      <p class="discret">⚠️ Vérifie que ce lien t'a bien été envoyé par ${n} en personne, depuis son numéro ou son compte habituel : n'importe qui ayant l'invitation peut s'inscrire sous un autre prénom.</p>
+      <button class="principal" data-action="ajouter-inscrit">C'est bien ${n}, l'ajouter</button>`;
   }
   return `
     <section class="carte centre">
@@ -913,18 +958,27 @@ function afficher(html) {
   $app.innerHTML = html;
 }
 
-function render() {
+function vueCourante() {
   const p = lirePayload();
-  if (p === false) return afficher(vueLienInvalide());
+  if (p === false) return vueLienInvalide();
   if (p) {
     const vues = { c: vueRevelation, l: vueListe, v: vueInvitation, r: vueInscriptionRecue, s: vueMissionSecrete };
-    return afficher(vues[p.t](p));
+    return vues[p.t](p);
   }
-  if (!etat.tirage) return afficher(vueOrganiser());
-  if (vue.nom === 'telephone') return afficher(vueTelephone());
-  if (vue.nom === 'confirmer') return afficher(vueConfirmer(vue.qui));
-  if (vue.nom === 'voir') return afficher(vueVoir(vue.qui));
-  afficher(vueResultats());
+  if (!etat.tirage) return vueOrganiser();
+  if (vue.nom === 'telephone') return vueTelephone();
+  if (vue.nom === 'confirmer') return vueConfirmer(vue.qui);
+  if (vue.nom === 'voir') return vueVoir(vue.qui);
+  return vueResultats();
+}
+
+function render() {
+  // Un lien au contenu inattendu ne doit jamais laisser l'écran précédent affiché
+  try {
+    afficher(vueCourante());
+  } catch (e) {
+    afficher(vueLienInvalide());
+  }
 }
 
 function aller(nouvelle) {
@@ -993,13 +1047,27 @@ async function lancerTirageSecret() {
   } catch (e) {
     return alert(e.message);
   }
-  // Seules les missions chiffrées sont gardées : le résultat en clair n'est jamais enregistré
+  let signature;
+  try {
+    signature = await lireCle(idOrganisateur(etat.session));
+  } catch (e) { }
+  if (!signature) {
+    etat.orgPub = '';
+    etat.inscrits = [];
+    etat.mode = 'simple';
+    sauver();
+    render();
+    return alert("La clé d'organisateur de ce tirage a disparu de ce téléphone (données du site effacées ?). Repasse en mode anti-triche et renvoie l'invitation : chacun devra se réinscrire.");
+  }
+  // Seules les missions chiffrées et signées sont gardées : le résultat en clair n'est jamais enregistré
   const liens = {};
   const local = {};
   for (const i of inscrits) {
     try {
       const mission = { d: i.nom, r: attributions[i.nom], ti: etat.titre, b: etat.budget, dt: etat.date, m: etat.mot };
-      liens[i.nom] = lien({ t: 's', id: i.id, ...(await chiffrerPour(i.cle, mission)) });
+      const chiffre = { t: 's', id: i.id, ...(await chiffrerPour(i.cle, mission)) };
+      chiffre.g = b64.enc(await crypto.subtle.sign(SIGNATURE, signature.privee, contenuSigne(chiffre)));
+      liens[i.nom] = lien(chiffre);
     } catch (e) {
       return alert(`L'inscription de ${i.nom} est abîmée. Retire-la et demande-lui de se réinscrire.`);
     }
@@ -1033,7 +1101,7 @@ async function inscrireOrganisateur() {
   if (!nom) return;
   if (etat.inscrits.some(i => meme(i.nom, nom))) return toast(`${nom} est déjà inscrit.`);
   try {
-    const fiche = await inscrire(etat.session, etat.titre, nom);
+    const fiche = await inscrire(etat.session, etat.titre, nom, etat.orgPub);
     etat.inscrits.push({ id: fiche.id, nom, cle: fiche.cle, local: true });
     sauver();
     render();
@@ -1049,7 +1117,7 @@ async function inscriptionParticipant(nomSaisi) {
   if (!nom) return toast('Écris ton prénom.');
   if ((vue.fiches || []).some(f => meme(f.nom, nom))) return toast(`${nom} est déjà inscrit sur ce téléphone.`);
   try {
-    await inscrire(p.s, p.ti, nom);
+    await inscrire(p.s, p.ti, nom, p.o);
   } catch (e) {
     return alert("Ce navigateur ne peut pas garder ta clé secrète (navigation privée ?). Ouvre le lien dans un onglet normal.");
   }
@@ -1065,9 +1133,16 @@ function marquerEnvoye(nom) {
 }
 
 const actions = {
-  'mode': el => {
+  'mode': async el => {
     etat.mode = el.dataset.mode;
-    if (secret() && !etat.session) etat.session = idAleatoire();
+    if (secret() && !etat.orgPub) {
+      try {
+        await nouvelleSession();
+      } catch (e) {
+        etat.mode = 'simple';
+        alert("Ce navigateur ne peut pas garder de clé secrète (navigation privée ?) : le mode anti-triche n'y est pas disponible.");
+      }
+    }
     sauver();
     render();
   },

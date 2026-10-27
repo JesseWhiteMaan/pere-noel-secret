@@ -13,6 +13,7 @@ Rien n'est envoyé à un serveur : la liste reste dans le téléphone de l'organ
 
 - **Simple** : l'organisateur saisit les prénoms. Le nom tiré est seulement brouillé dans le lien, pour éviter de le lire par accident.
 - **Anti-triche** : chacun s'inscrit depuis son téléphone, qui crée une clé secrète (ECDH P-256, non exportable, gardée dans le navigateur). L'organisateur ne reçoit que la clé publique et chiffre chaque mission pour son destinataire (AES-GCM). Il ne garde aucun résultat en clair et ne peut lire aucune mission, pas même en refaisant le tirage. Une mission ne s'ouvre que sur le téléphone et dans le navigateur de l'inscription.
+  Chaque mission est aussi signée (ECDSA P-256) par une clé d'organisateur dont la partie publique voyage dans l'invitation : une mission fabriquée par quelqu'un d'autre est refusée.
 
 ## Installer sur le téléphone
 
