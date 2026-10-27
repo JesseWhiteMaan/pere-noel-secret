@@ -1,6 +1,6 @@
 # Père Noël secret
 
-Petite appli web pour tirer au sort le Père Noël secret de la famille, depuis un téléphone (iPhone ou Android) ou un ordinateur.
+Petite appli web pour tirer au sort le Père Noël secret, depuis un téléphone (iPhone ou Android) ou un ordinateur.
 
 - Participants, couples qui ne peuvent pas se tirer, échanges réciproques interdits si on veut.
 - Chacun reçoit un **lien secret** (par SMS, WhatsApp…) qui lui révèle à qui il offre un cadeau. L'organisateur ne voit jamais les noms tirés.
